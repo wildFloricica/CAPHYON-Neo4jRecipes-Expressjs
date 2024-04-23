@@ -23,7 +23,12 @@ app.get("/", (req, res) => {
 async function GetRecipes(opts) {
   console.log("hi");
   // prevent cypher injection in the future
-  const { page_nr, page_size = 20, querry = "" } = opts;
+  var { page_nr, page_size = 20, querry = "", ingredientsQuerry = "" } = opts;
+
+  ingredientsQuerry = ingredientsQuerry
+    .split(" ")
+    .map((it) => it.trim())
+    .filter((it) => it);
 
   if (page_nr < 0) return [];
   // Get the name of all 42 year-olds
@@ -32,6 +37,8 @@ async function GetRecipes(opts) {
   const limit = page_size;
 
   // if querry is "" it seems that cypher ignores it :)))
+  // querry seems to not work as expected
+  // pottentially trim cuz some start with space (make a toggle or something in frontend)
   const { records, summary, keys } = await driver.executeQuery(
     `
 MATCH (r:Recipe)
@@ -47,16 +54,20 @@ RETURN *`,
 
   let res = [];
   records.forEach((record) => {
+    // 770 ms -(one object destructuring x150)> 660ms
+    // too much delay
+    // neo4j/browser takes 70 ms
     var _temp = record.get("r");
+
     // if it has different id it means it is another node
-    if (_temp.elementId != res.at(-1)?.elementId) res.push({ ..._temp });
+    if (_temp.elementId != res.at(-1)?.elementId) res.push(_temp);
 
     const r = res.at(-1);
     if (r.author == undefined) r.author = record.get("auth");
     if (r.ingredients == undefined) r.ingredients = [];
     r.ingredients.push(record.get("i"));
   });
-  console.log(res);
+  console.log(records.length);
   return res;
 }
 
