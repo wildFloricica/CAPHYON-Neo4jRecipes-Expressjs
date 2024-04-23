@@ -22,13 +22,18 @@ app.get("/", (req, res) => {
 async function GetRecipesByPage(page_nr, page_size = 20) {
   if (page_nr < 0) return [];
   // Get the name of all 42 year-olds
+
+  const skip = page_nr * page_size;
+  const limit = page_size;
+
   const { records, summary, keys } = await driver.executeQuery(
     `
-MATCH (auth: Author)-[:WROTE]->(r:Recipe)
-WITH r, auth SKIP ${page_size * page_nr} LIMIT ${page_size}
+MATCH (r:Recipe)
+WITH r ORDER BY r.name
+WITH r SKIP ${skip} LIMIT ${limit}
+MATCH (auth: Author)-[:WROTE]->(r)  
 MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
-RETURN *
-ORDER BY r.name`,
+RETURN *`,
     {},
     { database: "neo4j" }
   );
