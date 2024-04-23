@@ -10,26 +10,33 @@ const app = express();
 
 app.use(cors());
 app.use(express.static("public"));
+app.use(express.json());
 
-app.get("/api/recipes_page=:page", async (req, res) => {
-  res.send(await GetRecipesByPage(req.params.page));
+app.post("/api/recipes", async (req, res) => {
+  res.send(await GetRecipes(req.body));
 });
 
 app.get("/", (req, res) => {
   res.redirect("/home.html");
 });
 
-async function GetRecipesByPage(page_nr, page_size = 20) {
+async function GetRecipes(opts) {
+  console.log("hi");
+  // prevent cypher injection in the future
+  const { page_nr, page_size = 20, querry = "" } = opts;
+
   if (page_nr < 0) return [];
   // Get the name of all 42 year-olds
 
   const skip = page_nr * page_size;
   const limit = page_size;
 
+  // if querry is "" it seems that cypher ignores it :)))
   const { records, summary, keys } = await driver.executeQuery(
     `
 MATCH (r:Recipe)
 WITH r ORDER BY r.name
+Where r.name CONTAINS "${querry}"
 WITH r SKIP ${skip} LIMIT ${limit}
 MATCH (auth: Author)-[:WROTE]->(r)  
 MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
