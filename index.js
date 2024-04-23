@@ -15,10 +15,29 @@ app.use(express.json());
 app.post("/api/recipes", async (req, res) => {
   res.send(await GetRecipes(req.body));
 });
-
 app.get("/", (req, res) => {
   res.redirect("/home.html");
 });
+
+// mandatory
+async function GetAplhOrderedRecipes(page = 0, page_size = 20) {}
+async function GetAlphAndByName() {}
+// pagination also for this? not sure
+async function FilterByIngredientsNames() {}
+async function GetAllRecipesOfAuthor(author) {}
+
+// optional
+async function FilterByIngredientsCount() {}
+async function FilterBySkillLevel() {}
+async function GetCollectionTypesOfRecipe(recipe_id) {}
+async function GetKeywordsTypesOfRecipe(recipe_id) {}
+async function GetDietTypesOfRecipe(recipe_id) {}
+// in percentages also, or label
+async function Get5MostSimilarRecipesOfRecipe() {}
+// i assume it is for page
+async function Get5MostCommonIngredientsForPage() {}
+async function Get5MostProlificActorsForPage() {}
+async function Get5MostComplexRecipesForPage() {}
 
 async function GetRecipes(opts) {
   console.log("hi");
