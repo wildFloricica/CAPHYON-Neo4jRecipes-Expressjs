@@ -23,19 +23,29 @@ async function GetRecipesByPage(page_nr, page_size = 20) {
   if (page_nr < 0) return [];
   // Get the name of all 42 year-olds
   const { records, summary, keys } = await driver.executeQuery(
-    `MATCH (r:Recipe)-[:CONTAINS_INGREDIENT]->(i:Ingredient) 
-RETURN r, Count(i) as countt
-ORDER BY r.name
-SKIP ${page_size * page_nr}
-LIMIT ${page_size}`,
+    `
+MATCH (auth: Author)-[:WROTE]->(r:Recipe)
+WITH r, auth SKIP ${page_size * page_nr} LIMIT ${page_size}
+MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+RETURN *
+ORDER BY r.name`,
     {},
     { database: "neo4j" }
   );
-  return records.map((record) => {
+
+  let res = [];
+  records.forEach((record) => {
     var _temp = record.get("r");
-    _temp.properties.ingredients = record.get("countt");
-    return _temp;
+    // if it has different id it means it is another node
+    if (_temp.elementId != res.at(-1)?.elementId) res.push({ ..._temp });
+
+    const r = res.at(-1);
+    if (r.author == undefined) r.author = record.get("auth");
+    if (r.ingredients == undefined) r.ingredients = [];
+    r.ingredients.push(record.get("i"));
   });
+  console.log(res);
+  return res;
 }
 
 (async () => {
