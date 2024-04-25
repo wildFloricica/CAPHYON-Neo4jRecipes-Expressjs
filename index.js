@@ -4,6 +4,7 @@ const neo4j = require("neo4j-driver");
 require("dotenv").config();
 let driver;
 
+const PAGE_SIZE = 20;
 // test all edge cases
 
 const app = express();
@@ -23,7 +24,7 @@ app.get("/", (req, res) => {
 });
 
 // mandatory
-async function GetAplhOrderedRecipes(page = 0, page_size = 20) {}
+async function GetAplhOrderedRecipes(page = 0, PAGE_SIZE = 20) {}
 async function GetAlphAndByName() {}
 // pagination also for this? not sure
 async function FilterByIngredientsNames() {}
@@ -73,7 +74,7 @@ async function QuerryNeo4jDB(querry) {
 }
 
 async function GetAuthorsRecipes(opts) {
-  var { page_nr, author_name = "", page_size = 5, querry = "" } = opts;
+  var { page_nr, author_name = "", querry = "" } = opts;
 
   if (page_nr < 0) return [];
   return await QuerryNeo4jDB(`
@@ -82,7 +83,7 @@ WHERE a.name =  "${author_name}"
 MATCH (a)-[:WROTE]->(r:Recipe)
 WITH r ORDER BY r.name
 Where r.name CONTAINS "${querry}"
-WITH r SKIP ${page_size * page_nr} LIMIT ${page_size}
+WITH r SKIP ${PAGE_SIZE * page_nr} LIMIT ${PAGE_SIZE}
 MATCH (auth: Author)-[:WROTE]->(r)  
 MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
 RETURN *
@@ -91,7 +92,7 @@ RETURN *
 
 async function GetRecipes(opts) {
   // prevent cypher injection in the future
-  var { page_nr, page_size = 5, querry = "", ingredientsQuerry = "" } = opts;
+  var { page_nr, querry = "", ingredientsQuerry = "" } = opts;
 
   if (page_nr < 0) return [];
 
@@ -104,7 +105,7 @@ async function GetRecipes(opts) {
 MATCH (r:Recipe)
 WITH r ORDER BY r.name
 Where r.name CONTAINS "${querry}"
-WITH r SKIP ${page_nr * page_size} LIMIT ${page_size}
+WITH r SKIP ${page_nr * PAGE_SIZE} LIMIT ${PAGE_SIZE}
 MATCH (auth: Author)-[:WROTE]->(r)  
 MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
 RETURN *`);
