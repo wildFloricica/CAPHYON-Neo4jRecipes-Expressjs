@@ -19,6 +19,9 @@ app.post("/api/authors-recipes", async (req, res) => {
 app.post("/api/recipes", async (req, res) => {
   res.send(await GetRecipes(req.body));
 });
+app.get("/api/all-ingredients", async (req, res) =>
+  res.send(await GetAllIngredients())
+);
 app.get("/", (req, res) => {
   res.redirect("/home.html");
 });
@@ -44,7 +47,6 @@ async function Get5MostProlificActorsForPage() {}
 async function Get5MostComplexRecipesForPage() {}
 
 function PackageResponse({ records }) {
-  console.log(records);
   let res = [];
   records.forEach((record) => {
     // 770 ms -(one object destructuring x150)> 660ms
@@ -90,11 +92,30 @@ RETURN *
   `);
 }
 
+async function GetAllIngredients() {
+  const response = await driver.executeQuery(
+    `MATCH (i:Ingredient)
+RETURN i.name as ingredient`
+  );
+  const result = response.records.map((record) => record.get("ingredient"));
+  return result;
+}
+
 async function GetRecipes(opts) {
   // prevent cypher injection in the future
-  var { page_nr, querry = "", ingredientsQuerry = "" } = opts;
+  var { page_nr, querry = "", ingredientsQuerry = [] } = opts;
+  console.log(ingredientsQuerry);
+  var iq = ingredientsQuerry;
+  iq = iq.map((it) => `"${it}"`).join(", ");
 
   if (page_nr < 0) return [];
+
+  // imporve WHERE for ingredients cuz it is praf now
+  var recipe_source = !iq.length
+    ? "MATCH (r:Recipe)\n"
+    : `
+  MATCH (r:Recipe)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+WHERE any(ingr_name IN [${iq}] WHERE  ingr_name =i.name)\n`;
 
   // Get the name of all 42 year-olds
   // search is case sensitive
@@ -102,7 +123,7 @@ async function GetRecipes(opts) {
   // querry seems to not work as expected
   // pottentially trim cuz some start with space (make a toggle or something in frontend)
   return await QuerryNeo4jDB(`
-MATCH (r:Recipe)
+${recipe_source}
 WITH r ORDER BY r.name
 Where r.name CONTAINS "${querry}"
 WITH r SKIP ${page_nr * PAGE_SIZE} LIMIT ${PAGE_SIZE}
@@ -123,6 +144,7 @@ RETURN *`);
     console.log(serverInfo);
     // start server
     app.listen(3001, () => console.log("asdasd"));
+    await GetAllIngredients();
   } catch (err) {
     console.log(`Connection error\n${err}\nCause: ${err.cause}`);
   }

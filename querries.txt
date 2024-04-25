@@ -1,0 +1,14 @@
+all recipes of certain ingredients
+MATCH (r:Recipe)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+WHERE any(ingr_name IN ["butter","pesto", "apple"] WHERE  ingr_name =i.name) 
+WITH r LIMIT 20
+WITH r ORDER BY r.name
+RETURN *
+
+// all recipes by name and alph and all their ingredients and author
+WITH r ORDER BY r.name
+Where r.name CONTAINS ""
+WITH r SKIP 1 LIMIT 20
+MATCH (auth: Author)-[:WROTE]->(r)
+MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+RETURN *
