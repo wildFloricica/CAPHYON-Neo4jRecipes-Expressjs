@@ -12,6 +12,9 @@ app.use(cors());
 app.use(express.static("public"));
 app.use(express.json());
 
+app.post("/api/authors-recipes", async (req, res) => {
+  res.send(await GetAuthorsRecipes(req.body));
+});
 app.post("/api/recipes", async (req, res) => {
   res.send(await GetRecipes(req.body));
 });
@@ -39,38 +42,8 @@ async function Get5MostCommonIngredientsForPage() {}
 async function Get5MostProlificActorsForPage() {}
 async function Get5MostComplexRecipesForPage() {}
 
-async function GetRecipes(opts) {
-  console.log("hi");
-  // prevent cypher injection in the future
-  var { page_nr, page_size = 20, querry = "", ingredientsQuerry = "" } = opts;
-
-  ingredientsQuerry = ingredientsQuerry
-    .split(" ")
-    .map((it) => it.trim())
-    .filter((it) => it);
-
-  if (page_nr < 0) return [];
-  // Get the name of all 42 year-olds
-
-  const skip = page_nr * page_size;
-  const limit = page_size;
-
-  // if querry is "" it seems that cypher ignores it :)))
-  // querry seems to not work as expected
-  // pottentially trim cuz some start with space (make a toggle or something in frontend)
-  const { records, summary, keys } = await driver.executeQuery(
-    `
-MATCH (r:Recipe)
-WITH r ORDER BY r.name
-Where r.name CONTAINS "${querry}"
-WITH r SKIP ${skip} LIMIT ${limit}
-MATCH (auth: Author)-[:WROTE]->(r)  
-MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
-RETURN *`,
-    {},
-    { database: "neo4j" }
-  );
-
+function PackageResponse({ records }) {
+  console.log(records);
   let res = [];
   records.forEach((record) => {
     // 770 ms -(one object destructuring x150)> 660ms
@@ -88,6 +61,53 @@ RETURN *`,
   });
   console.log(records.length);
   return res;
+}
+
+async function QuerryNeo4jDB(querry) {
+  console.log(querry);
+  console.log();
+  console.log();
+  console.log();
+  var opts = { database: "neo4j" };
+  return PackageResponse(await driver.executeQuery(querry, {}, opts));
+}
+
+async function GetAuthorsRecipes(opts) {
+  var { page_nr, author_name = "", page_size = 5, querry = "" } = opts;
+
+  if (page_nr < 0) return [];
+  return await QuerryNeo4jDB(`
+MATCH (a:Author)
+WHERE a.name =  "${author_name}"
+MATCH (a)-[:WROTE]->(r:Recipe)
+WITH r ORDER BY r.name
+Where r.name CONTAINS "${querry}"
+WITH r SKIP ${page_size * page_nr} LIMIT ${page_size}
+MATCH (auth: Author)-[:WROTE]->(r)  
+MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+RETURN *
+  `);
+}
+
+async function GetRecipes(opts) {
+  // prevent cypher injection in the future
+  var { page_nr, page_size = 5, querry = "", ingredientsQuerry = "" } = opts;
+
+  if (page_nr < 0) return [];
+
+  // Get the name of all 42 year-olds
+  // search is case sensitive
+  // if querry is "" it seems that cypher ignores it :)))
+  // querry seems to not work as expected
+  // pottentially trim cuz some start with space (make a toggle or something in frontend)
+  return await QuerryNeo4jDB(`
+MATCH (r:Recipe)
+WITH r ORDER BY r.name
+Where r.name CONTAINS "${querry}"
+WITH r SKIP ${page_nr * page_size} LIMIT ${page_size}
+MATCH (auth: Author)-[:WROTE]->(r)  
+MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+RETURN *`);
 }
 
 (async () => {
