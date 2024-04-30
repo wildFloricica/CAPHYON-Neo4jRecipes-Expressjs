@@ -4,6 +4,13 @@ const neo4j = require("neo4j-driver");
 require("dotenv").config();
 let driver;
 
+// issues
+/*
+  filtering by ingredients is bad
+  filtering by recipe.name is kinda ok
+  sorting by recipe.name may require a trim on strings
+*/
+
 const PAGE_SIZE = 20;
 // test all edge cases
 
@@ -25,13 +32,6 @@ app.get("/api/all-ingredients", async (req, res) =>
 app.get("/", (req, res) => {
   res.redirect("/home.html");
 });
-
-// mandatory
-async function GetAplhOrderedRecipes(page = 0, PAGE_SIZE = 20) {}
-async function GetAlphAndByName() {}
-// pagination also for this? not sure
-async function FilterByIngredientsNames() {}
-async function GetAllRecipesOfAuthor(author) {}
 
 // optional
 async function FilterByIngredientsCount() {}

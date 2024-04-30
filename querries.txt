@@ -12,3 +12,9 @@ WITH r SKIP 1 LIMIT 20
 MATCH (auth: Author)-[:WROTE]->(r)
 MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
 RETURN *
+
+
+
+
+"Easy", "More effort", "A challenge"
+4 11 11
