@@ -20,9 +20,6 @@ app.use(cors());
 app.use(express.static("public"));
 app.use(express.json());
 
-app.post("/api/authors-recipes", async (req, res) => {
-  res.send(await GetAuthorsRecipes(req.body));
-});
 app.post("/api/recipes", async (req, res) => {
   res.send(await GetRecipes(req.body));
 });
@@ -75,24 +72,6 @@ async function QuerryNeo4jDB(querry) {
   return PackageResponse(await driver.executeQuery(querry, {}, opts));
 }
 
-// move it under the get recipes umbrela and just add the check for the author and default it to ""
-async function GetAuthorsRecipes(opts) {
-  var { page_nr, author_name = "", querry = "" } = opts;
-
-  if (page_nr < 0) return [];
-  return await QuerryNeo4jDB(`
-MATCH (a:Author)
-WHERE a.name =  "${author_name}"
-MATCH (a)-[:WROTE]->(r:Recipe)
-WITH r ORDER BY r.name
-Where r.name CONTAINS "${querry}"
-WITH r SKIP ${PAGE_SIZE * page_nr} LIMIT ${PAGE_SIZE}
-MATCH (auth: Author)-[:WROTE]->(r)  
-MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
-RETURN *
-  `);
-}
-
 async function GetAllIngredients() {
   const response = await driver.executeQuery(
     `MATCH (i:Ingredient)
@@ -105,6 +84,7 @@ RETURN i.name as ingredient`
 async function GetRecipes(opts) {
   // prevent cypher injection in the future
   var {
+    author_name = "",
     page_nr,
     querry = "",
     ingredientsQuerry = [],
@@ -145,7 +125,9 @@ async function GetRecipes(opts) {
   // querry seems to not work as expected
   // pottentially trim cuz some start with space (make a toggle or something in frontend)
   return await QuerryNeo4jDB(`
-  MATCH (r:Recipe)
+  MATCH (r:Recipe)${
+    author_name ? `<-[:WROTE]-(:Author {name: "${author_name}"})` : ""
+  }
 ${filterByIngredients}
 ${querry ? `WITH r\nWHERE r.name CONTAINS "${querry}"` : ""}
 ${sort} 
