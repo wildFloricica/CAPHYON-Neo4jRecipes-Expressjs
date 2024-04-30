@@ -18,3 +18,29 @@ RETURN *
 
 "Easy", "More effort", "A challenge"
 4 11 11
+
+
+
+
+// get recipes
+MATCH (r:Recipe)
+
+// filter by name
+//WHERE r.name = ""
+WITH r SKIP 1 LIMIT 20
+// filter by ingredients 
+MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+WHERE any(ingr_name IN ["butter","pesto", "apple"] WHERE  ingr_name =i.name) 
+
+// sort by name
+WITH r ORDER BY r.name
+// sort by ingredients count
+WITH r,  reverse(r.skillLevel) as trick, count(cc) as cco ORDER BY trick DESC
+// sort by skill level
+
+// aditional info
+
+// paginations
+
+
+

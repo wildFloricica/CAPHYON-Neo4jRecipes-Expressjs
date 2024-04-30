@@ -75,6 +75,7 @@ async function QuerryNeo4jDB(querry) {
   return PackageResponse(await driver.executeQuery(querry, {}, opts));
 }
 
+// move it under the get recipes umbrela and just add the check for the author and default it to ""
 async function GetAuthorsRecipes(opts) {
   var { page_nr, author_name = "", querry = "" } = opts;
 
@@ -103,19 +104,40 @@ RETURN i.name as ingredient`
 
 async function GetRecipes(opts) {
   // prevent cypher injection in the future
-  var { page_nr, querry = "", ingredientsQuerry = [] } = opts;
+  var {
+    page_nr,
+    querry = "",
+    ingredientsQuerry = [],
+    sortProperty = {},
+    trimRecipeName = false,
+  } = opts;
   console.log(ingredientsQuerry);
   var iq = ingredientsQuerry;
   iq = iq.map((it) => `"${it}"`).join(", ");
 
   if (page_nr < 0) return [];
 
+  console.log(sortProperty);
+
   // imporve WHERE for ingredients cuz it is praf now
-  var recipe_source = !iq.length
-    ? "MATCH (r:Recipe)\n"
-    : `
-  MATCH (r:Recipe)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
-WHERE any(ingr_name IN [${iq}] WHERE  ingr_name =i.name)\n`;
+  var filterByIngredients = "";
+  if (iq.length)
+    filterByIngredients = `
+  MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+    WHERE any(ingr_name IN [${iq}] WHERE  ingr_name =i.name)\n`;
+
+  var sort = "";
+  if (sortProperty.property == "name") sort = "WITH r ORDER BY r.name ASC";
+  if (sortProperty.property == "skillLevel") {
+    var type = "ASC";
+    if (sortProperty.type == "ASC") type = "DESC";
+
+    sort = `WITH r,  reverse(r.skillLevel) as trick ORDER BY trick ${type}`;
+  }
+  if (sortProperty.property == "ingr_count")
+    sort = `
+    MATCH (r)-[cc:CONTAINS_INGREDIENT]->(i:Ingredient)
+    WITH r, count(cc) as cco ORDER BY cco ${sortProperty.type}`;
 
   // Get the name of all 42 year-olds
   // search is case sensitive
@@ -123,12 +145,12 @@ WHERE any(ingr_name IN [${iq}] WHERE  ingr_name =i.name)\n`;
   // querry seems to not work as expected
   // pottentially trim cuz some start with space (make a toggle or something in frontend)
   return await QuerryNeo4jDB(`
-${recipe_source}
-WITH r ORDER BY r.name
-Where r.name CONTAINS "${querry}"
+  MATCH (r:Recipe)
+${filterByIngredients}
+${querry ? `WITH r\nWHERE r.name CONTAINS "${querry}"` : ""}
+${sort} 
 WITH r SKIP ${page_nr * PAGE_SIZE} LIMIT ${PAGE_SIZE}
-MATCH (auth: Author)-[:WROTE]->(r)  
-MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+MATCH (auth: Author)-[:WROTE]->(r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
 RETURN *`);
 }
 
