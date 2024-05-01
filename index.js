@@ -54,7 +54,7 @@ function PackageResponse({ records }) {
     // neo4j/browser takes 70 ms
     var _temp = record.get("r");
     _temp.author = record.get("author");
-    _temp.dietType = record.get("dietType");
+    _temp.dietTypes = record.get("dietTypes");
     // lists
     _temp.ingredients = record.get("ingredients");
     _temp.collections = record.get("collections");
@@ -112,8 +112,7 @@ WHERE ALL (
     WHERE ANY(
         ingr in ingredients WHERE ingr = check_ingr
     )
-)
-`;
+)`;
 
   var sort = "";
   if (sortProperty.property == "name") sort = "WITH r ORDER BY r.name ASC";
@@ -134,25 +133,23 @@ WHERE ALL (
   // querry seems to not work as expected
   // pottentially trim cuz some start with space (make a toggle or something in frontend)
   return await QuerryNeo4jDB(`
-  MATCH (r:Recipe)${
+MATCH (r:Recipe)${
     authorName ? `<-[:WROTE]-(:Author {name: "${authorName}"})` : ""
   }
 ${filterByIngredients}
 ${querry ? `WITH r\nWHERE r.name CONTAINS "${querry}"` : ""}
 ${sort} 
 WITH r SKIP ${pageNr * PAGE_SIZE} LIMIT ${PAGE_SIZE}
-
 OPTIONAL MATCH (r)-[]-(auth:Author)
 OPTIONAL MATCH (r)-[]-(dt:DietType)
+WITH r, auth, collect(dt.name) as dietTypes
 OPTIONAL MATCH (r)-[]-(c:Collection)
-WITH r, auth, dt, collect(c.name) as collections
+WITH r, auth, dietTypes, collect(c.name) as collections
 OPTIONAL MATCH (r)-[]-(i:Ingredient)
-WITH r, auth, dt, collections, collect(i.name) as ingredients
+WITH r, auth, dietTypes, collections, collect(i.name) as ingredients
 OPTIONAL MATCH (r)-[]-(k:Keyword)
-WITH r, auth, dt, collections,ingredients,collect(k.name) as keywords
-WITH r, auth.name as author, dt.name as dietType, collections,ingredients, keywords
-
-
+WITH r, auth, dietTypes, collections, ingredients,collect(k.name) as keywords
+WITH r, auth.name as author, dietTypes, collections, ingredients, keywords
 RETURN *`);
 }
 
