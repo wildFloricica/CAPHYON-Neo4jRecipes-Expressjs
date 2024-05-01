@@ -105,8 +105,15 @@ async function GetRecipes(opts) {
   var filterByIngredients = "";
   if (iq.length)
     filterByIngredients = `
-  MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
-    WHERE any(ingr_name IN [${iq}] WHERE  ingr_name =i.name)\n`;
+MATCH (r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+WITH r, collect(i.name) as ingredients
+WHERE ALL (
+    check_ingr IN [${iq}]
+    WHERE ANY(
+        ingr in ingredients WHERE ingr = check_ingr
+    )
+)
+`;
 
   var sort = "";
   if (sortProperty.property == "name") sort = "WITH r ORDER BY r.name ASC";
