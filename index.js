@@ -43,23 +43,25 @@ async function Get5MostCommonIngredientsForPage() {}
 async function Get5MostProlificActorsForPage() {}
 async function Get5MostComplexRecipesForPage() {}
 
+// maybe break apart those  and request only the recipe
+// and after the page loads , then start to fetch for each recipe
+// those aditional properties so user does not feel lag
+// currently like 800 ms
 function PackageResponse({ records }) {
-  let res = [];
-  records.forEach((record) => {
+  let res = records.map((record) => {
     // 770 ms -(one object destructuring x150)> 660ms
     // too much delay
     // neo4j/browser takes 70 ms
     var _temp = record.get("r");
-
-    // if it has different id it means it is another node
-    if (_temp.elementId != res.at(-1)?.elementId) res.push(_temp);
-
-    const r = res.at(-1);
-    if (r.author == undefined) r.author = record.get("auth");
-    if (r.ingredients == undefined) r.ingredients = [];
-    r.ingredients.push(record.get("i"));
+    _temp.author = record.get("author");
+    _temp.dietType = record.get("dietType");
+    // lists
+    _temp.ingredients = record.get("ingredients");
+    _temp.collections = record.get("collections");
+    _temp.keywords = record.get("keywords");
+    return _temp;
   });
-  console.log(records.length);
+
   return res;
 }
 
@@ -84,8 +86,8 @@ RETURN i.name as ingredient`
 async function GetRecipes(opts) {
   // prevent cypher injection in the future
   var {
-    author_name = "",
-    page_nr,
+    authorName = "",
+    pageNr,
     querry = "",
     ingredientsQuerry = [],
     sortProperty = {},
@@ -95,7 +97,7 @@ async function GetRecipes(opts) {
   var iq = ingredientsQuerry;
   iq = iq.map((it) => `"${it}"`).join(", ");
 
-  if (page_nr < 0) return [];
+  if (pageNr < 0) return [];
 
   console.log(sortProperty);
 
@@ -126,13 +128,24 @@ async function GetRecipes(opts) {
   // pottentially trim cuz some start with space (make a toggle or something in frontend)
   return await QuerryNeo4jDB(`
   MATCH (r:Recipe)${
-    author_name ? `<-[:WROTE]-(:Author {name: "${author_name}"})` : ""
+    authorName ? `<-[:WROTE]-(:Author {name: "${authorName}"})` : ""
   }
 ${filterByIngredients}
 ${querry ? `WITH r\nWHERE r.name CONTAINS "${querry}"` : ""}
 ${sort} 
-WITH r SKIP ${page_nr * PAGE_SIZE} LIMIT ${PAGE_SIZE}
-MATCH (auth: Author)-[:WROTE]->(r)-[:CONTAINS_INGREDIENT]->(i:Ingredient)
+WITH r SKIP ${pageNr * PAGE_SIZE} LIMIT ${PAGE_SIZE}
+
+OPTIONAL MATCH (r)-[]-(auth:Author)
+OPTIONAL MATCH (r)-[]-(dt:DietType)
+OPTIONAL MATCH (r)-[]-(c:Collection)
+WITH r, auth, dt, collect(c.name) as collections
+OPTIONAL MATCH (r)-[]-(i:Ingredient)
+WITH r, auth, dt, collections, collect(i.name) as ingredients
+OPTIONAL MATCH (r)-[]-(k:Keyword)
+WITH r, auth, dt, collections,ingredients,collect(k.name) as keywords
+WITH r, auth.name as author, dt.name as dietType, collections,ingredients, keywords
+
+
 RETURN *`);
 }
 
