@@ -101,7 +101,6 @@ async function GetRecipes(opts) {
 
   console.log(sortProperty);
 
-  // imporve WHERE for ingredients cuz it is praf now
   var filterByIngredients = "";
   if (iq.length)
     filterByIngredients = `
