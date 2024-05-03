@@ -21,7 +21,10 @@ app.use(express.static("public"));
 app.use(express.json());
 
 app.post("/api/recipes", async (req, res) => {
-  res.send(await GetRecipes(req.body));
+  res.send({
+    normal: await GetRecipes(req.body),
+    topcomplex: await GetRecipes({ ...req.body, byComplexity: true }),
+  });
 });
 app.get("/api/all-ingredients", async (req, res) =>
   res.send(await GetAllIngredients())
@@ -92,6 +95,7 @@ async function GetRecipes(opts) {
     ingredientsQuerry = [],
     sortProperty = {},
     trimRecipeName = false,
+    byComplexity = false,
   } = opts;
   console.log(ingredientsQuerry);
   var iq = ingredientsQuerry;
@@ -149,6 +153,14 @@ WITH r, auth, dietTypes, collections, collect(i.name) as ingredients
 OPTIONAL MATCH (r)-[]-(k:Keyword)
 WITH r, auth, dietTypes, collections, ingredients,collect(k.name) as keywords
 WITH r, auth.name as author, dietTypes, collections, ingredients, keywords
+${
+  byComplexity
+    ? `
+WITH *,  reverse(r.skillLevel) as trick, size(ingredients) as ingCount  ORDER BY trick ASC, ingCount DESC, r.preparationTime DESC , r.cookingTime DESC, r.name ASC
+LIMIT 5
+`
+    : ""
+}  
 RETURN *`);
 }
 

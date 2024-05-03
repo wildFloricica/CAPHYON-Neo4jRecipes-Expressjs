@@ -1,0 +1,18 @@
+COMPLEX recipe
+  skill level?
+  number of ingredients? 
+  preparation time?
+  cooking time?
+
+SIMILAR recipe:
+  common 
+    author 
+    ingredients
+    keywords
+    collections
+    diet types
+  partially common name
+  
+
+
+
