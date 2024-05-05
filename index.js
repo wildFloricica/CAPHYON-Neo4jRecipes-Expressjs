@@ -117,18 +117,21 @@ WHERE ALL (
     )
 )`;
 
-  var sort = "";
-  if (sortProperty.property == "name") sort = "WITH r ORDER BY r.name ASC";
-  if (sortProperty.property == "skillLevel") {
-    var type = "ASC";
-    if (sortProperty.type == "ASC") type = "DESC";
+  var sort = `
+MATCH (r)-[cc:CONTAINS_INGREDIENT]->(i:Ingredient)
+WITH r, r.name as recipe_name,  count(cc) as ingr_count, reverse(r.skillLevel) as skillLevel
+ORDER BY `;
 
-    sort = `WITH r,  reverse(r.skillLevel) as trick ORDER BY trick ${type}`;
-  }
-  if (sortProperty.property == "ingr_count")
-    sort = `
-    MATCH (r)-[cc:CONTAINS_INGREDIENT]->(i:Ingredient)
-    WITH r, count(cc) as cco ORDER BY cco ${sortProperty.type}`;
+  sortProperty.order.forEach((key, index) => {
+    if (index > 0) sort += ",";
+
+    var direction = sortProperty[key];
+    if (key == "skillLevel") {
+      if (direction == "ASC") direction = "DESC";
+      else if (direction == "DESC") direction = "ASC";
+    }
+    sort += key + " " + direction;
+  });
 
   // Get the name of all 42 year-olds
   // search is case sensitive
