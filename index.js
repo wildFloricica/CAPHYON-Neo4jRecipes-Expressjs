@@ -3,7 +3,7 @@ const cors = require("cors");
 const neo4j = require("neo4j-driver");
 require("dotenv").config();
 let driver;
-
+const fs = require("fs");
 // issues
 /*
   sorting by recipe.name may require a trim on strings
@@ -31,18 +31,68 @@ app.get("/", (req, res) => {
   res.redirect("/home.html");
 });
 
-// optional
-async function FilterByIngredientsCount() {}
-async function FilterBySkillLevel() {}
-async function GetCollectionTypesOfRecipe(recipe_id) {}
-async function GetKeywordsTypesOfRecipe(recipe_id) {}
-async function GetDietTypesOfRecipe(recipe_id) {}
-// in percentages also, or label
-async function Get5MostSimilarRecipesOfRecipe() {}
-// i assume it is for page
-async function Get5MostCommonIngredientsForPage() {}
-async function Get5MostProlificActorsForPage() {}
-async function Get5MostComplexRecipesForPage() {}
+app.post("/api/similar", async (req, res) => {
+  res.send(
+    await QuerryNeo4jDB(
+      `
+// get recipe
+MATCH (r:Recipe)
+WHERE r.name CONTAINS "${req.body.recipeName}"
+WITH r LIMIT 1
+// get all data for recipe
+OPTIONAL MATCH (r)-[]-(auth:Author)
+WITH r, auth.name as an
+OPTIONAL MATCH (r)-[]-(dt:DietType)
+WITH r, an, collect(dt.name) as dts
+OPTIONAL MATCH (r)-[]-(c:Collection)
+WITH r, an, dts, collect(c.name) as cs
+OPTIONAL MATCH (r)-[]-(i:Ingredient)
+WITH r, an, dts, cs, collect(i.name) as iis
+OPTIONAL MATCH (r)-[]-(k:Keyword)
+WITH r, an, dts, cs, iis, collect(k.name) as ks
+WITH r, an, dts, cs, iis, ks
+
+
+
+// get all data for all recipes
+MATCH (dr:Recipe)
+WHERE  NOT( dr.name CONTAINS "${req.body.recipeName}")
+OPTIONAL MATCH (dr)-[]-(auth:Author)
+WITH r, an, dts, cs, iis, ks, dr, auth.name as dan
+OPTIONAL MATCH (dr)-[]-(dt:DietType)
+WITH r, an, dts, cs, iis, ks, dr, dan, collect(dt.name) as ddts
+OPTIONAL MATCH (dr)-[]-(c:Collection)
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, collect(c.name) as dcs
+OPTIONAL MATCH (dr)-[]-(i:Ingredient)
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, collect(i.name) as diis
+OPTIONAL MATCH (dr)-[]-(k:Keyword)
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, diis, collect(k.name) as dks
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, diis, dks
+
+
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, diis, dks,
+    apoc.coll.intersection(dts, ddts) as fdts,
+    apoc.coll.intersection(cs, dcs) as fcs,
+    apoc.coll.intersection(iis, diis) as fiis,
+    apoc.coll.intersection(ks, dks) as fks
+
+ORDER BY size(fiis) DESC, size(fks) DESC, size(fcs) DESC, size(fdts) DESC, dr.name ASC 
+RETURN dr, dan, ddts, dcs, diis, dks
+Limit 5
+  `,
+      ({ records }) =>
+        records.map((record) => {
+          var _temp = record.get("dr");
+          _temp.author = record.get("dan");
+          _temp.dietTypes = record.get("ddts");
+          _temp.ingredients = record.get("diis");
+          _temp.collections = record.get("dcs");
+          _temp.keywords = record.get("dks");
+          return _temp;
+        })
+    )
+  );
+});
 
 // maybe break apart those  and request only the recipe
 // and after the page loads , then start to fetch for each recipe
@@ -66,13 +116,13 @@ function PackageResponse({ records }) {
   return res;
 }
 
-async function QuerryNeo4jDB(querry) {
+async function QuerryNeo4jDB(querry, cb = PackageResponse) {
   console.log(querry);
   console.log();
   console.log();
   console.log();
   var opts = { database: "neo4j" };
-  return PackageResponse(await driver.executeQuery(querry, {}, opts));
+  return cb(await driver.executeQuery(querry, {}, opts));
 }
 
 async function GetAllIngredients() {

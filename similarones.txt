@@ -1,0 +1,47 @@
+// get recipe
+MATCH (r:Recipe)
+WHERE r.name CONTAINS " Apricot & pistachio frangipane blondies"
+WITH r LIMIT 1
+// get all data for recipe
+OPTIONAL MATCH (r)-[]-(auth:Author)
+WITH r, auth.name as an
+OPTIONAL MATCH (r)-[]-(dt:DietType)
+WITH r, an, collect(dt.name) as dts
+OPTIONAL MATCH (r)-[]-(c:Collection)
+WITH r, an, dts, collect(c.name) as cs
+OPTIONAL MATCH (r)-[]-(i:Ingredient)
+WITH r, an, dts, cs, collect(i.name) as iis
+OPTIONAL MATCH (r)-[]-(k:Keyword)
+WITH r, an, dts, cs, iis, collect(k.name) as ks
+WITH r, an, dts, cs, iis, ks
+
+
+
+// get all data for all recipes
+MATCH (dr:Recipe)
+WHERE  NOT( dr.name CONTAINS  " Apricot & pistachio frangipane blondies")
+OPTIONAL MATCH (dr)-[]-(auth:Author)
+WITH r, an, dts, cs, iis, ks, dr, auth.name as dan
+OPTIONAL MATCH (dr)-[]-(dt:DietType)
+WITH r, an, dts, cs, iis, ks, dr, dan, collect(dt.name) as ddts
+OPTIONAL MATCH (dr)-[]-(c:Collection)
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, collect(c.name) as dcs
+OPTIONAL MATCH (dr)-[]-(i:Ingredient)
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, collect(i.name) as diis
+OPTIONAL MATCH (dr)-[]-(k:Keyword)
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, diis, collect(k.name) as dks
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, diis, dks
+
+
+WITH r, an, dts, cs, iis, ks, dr, dan, ddts, dcs, diis, dks,
+    apoc.coll.intersection(dts, ddts) as fdts,
+    apoc.coll.intersection(cs, dcs) as fcs,
+    apoc.coll.intersection(iis, diis) as fiis,
+    apoc.coll.intersection(ks, dks) as fks
+
+ORDER BY size(fiis) DESC, size(fks) DESC, size(fcs) DESC, size(fdts) DESC, dr.name ASC 
+RETURN dr, dan, ddts, dcs, diis, dks
+Limit 5
+
+
+
