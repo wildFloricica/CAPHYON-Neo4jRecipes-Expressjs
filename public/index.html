@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipes Booksite</title>
+    <style></style>
+
+    <link rel="shortcut icon" href="./caphyon-favicon-with-floricica2.png" />
+
+    <!-- separate the credits css from the rest -->
+    <!-- <link rel="stylesheet" href="./src/credits.css"> -->
+    <script type="module" crossorigin src="/assets/index-2ys0pMuF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-D7tmtyUW.css">
+  </head>
+  <body>
+    <div class="credits">
+      <div class="banner">
+        <div>Made Possible by...</div>
+        <img src="./logo_Caphyon_RGB.webp" alt="" />
+      </div>
+      <div id="wildfloricica-logo" class="animate">
+        <span class="logo-message">click me</span>
+        <img class="wilddd" src="./wildfloricica_v1_0.png" alt="" />
+      </div>
+
+      <script>
+        window.addEventListener("load", (e) => {
+          const logo = document.querySelector("#wildfloricica-logo");
+          var canFollow = false;
+          var clickcount = 0;
+          const msg = document.querySelector(".logo-message");
+
+          if (localStorage.getItem("understood-logo")) msg.remove();
+          logo.onclick = () => {
+            clickcount++;
+            if (clickcount == 1 && msg) msg.textContent = "move mouse";
+
+            if (clickcount == 2 && msg) {
+              msg.remove();
+              localStorage.setItem("understood-logo", "true");
+            }
+            canFollow = !canFollow;
+            logo.classList.toggle("animate");
+          };
+
+          const widthhh = logo.getBoundingClientRect().width / 2;
+          const heightt = logo.getBoundingClientRect().height / 2;
+          logo.style.bottom = "unset";
+
+          window.addEventListener("mousemove", (e) => {
+            if (canFollow) {
+              if (clickcount == 1 && msg) msg.textContent = "click me again";
+              logo.style.left = e.clientX - widthhh + "px";
+              logo.style.top = e.clientY - heightt + "px";
+            }
+          });
+        });
+      </script>
+    </div>
+    <div id="root"></div>
+  </body>
+</html>
