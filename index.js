@@ -4,6 +4,32 @@ const neo4j = require("neo4j-driver");
 require("dotenv").config();
 let driver;
 const fs = require("fs");
+
+//
+//
+//
+//
+//
+//
+// readme.ahhhh
+//
+// am lasat cypher injection pe final si nu am mai apucat sa-l fac 🥲🥲🥲
+// si optimizari la querryuri se mai puteau face destule
+//
+//
+//
+// .  🌸🌸  🌸🌸
+// .🌸🌸🌸🌸🌸🌸
+// .🌸🌸🌸🌸🌸🌸
+// .🌸🌸🌸🌸🌸🌸
+// .   🌸🌸🌸🌸
+// .     🌸🌸
+//
+//
+//
+//
+//
+
 // issues
 /*
   sorting by recipe.name may require a trim on strings
