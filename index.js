@@ -6,8 +6,6 @@ let driver;
 
 // issues
 /*
-  filtering by ingredients is bad
-  filtering by recipe.name is kinda ok
   sorting by recipe.name may require a trim on strings
 */
 
@@ -122,7 +120,7 @@ MATCH (r)-[cc:CONTAINS_INGREDIENT]->(i:Ingredient)
 WITH r, r.name as recipe_name,  count(cc) as ingr_count, reverse(r.skillLevel) as skillLevel
 ORDER BY `;
 
-  sortProperty.order.forEach((key, index) => {
+  [...sortProperty.order, "recipe_name"].forEach((key, index) => {
     if (index > 0) sort += ",";
 
     var direction = sortProperty[key];
